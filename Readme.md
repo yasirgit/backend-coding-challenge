@@ -133,6 +133,42 @@ test
    npm test
    ```
 
+## Asynchronous Task Execution with Bull
+
+The project uses **Bull**, a robust Redis-based queue library, to manage and execute tasks asynchronously. This ensures that tasks are processed in the background, allowing the system to handle long-running operations efficiently.
+
+### Task Queue
+
+- A Bull queue named `taskQueue` is initialized in `src/queue/taskQueue.ts`.
+- The queue connects to a Redis instance running on `127.0.0.1:6379`.
+- Tasks are added to the queue when they are ready to run, and Bull processes them in the background.
+
+### Task Processing
+
+- The `taskQueue.process` method defines how tasks are executed:
+  - Tasks are fetched from the database using TypeORM.
+  - The `TaskRunner` is used to execute the task logic.
+  - Dependencies between tasks are respected, ensuring that tasks are executed in the correct order.
+
+### Retry Mechanism
+
+The project includes a retry mechanism to handle failed tasks gracefully:
+
+1. **Retries in TaskRunner**:
+   - The `TaskRunner` includes a `maxRetries` property (default: 3).
+   - If a task fails, the `retryCount` is incremented, and the task is retried with an exponential backoff delay (`2^retryCount * 1000` milliseconds).
+
+2. **Retries in Bull**:
+   - Bull supports retrying failed jobs. Tasks are added to the queue with retry configurations:
+     ```typescript
+     taskQueue.add({ taskId: task.taskId }, { attempts: 3, backoff: 5000 });
+     ```
+   - This ensures tasks are retried up to 3 times with a 5-second delay between attempts.
+
+3. **Failure Handling**:
+   - If the maximum retry attempts are exceeded, the task is marked as failed, and its status is updated in the database.
+   - Failures are logged, and dependent tasks or workflows are handled accordingly.
+
 
 ### Testing the Features
 
