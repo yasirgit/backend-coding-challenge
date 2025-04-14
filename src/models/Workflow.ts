@@ -10,9 +10,12 @@ export class Workflow {
     @Column()
     clientId!: string;
 
-    @Column({ default: WorkflowStatus.Initial })
+    @Column({ type: 'enum', enum: WorkflowStatus, default: WorkflowStatus.InProgress })
     status!: WorkflowStatus;
 
     @OneToMany(() => Task, task => task.workflow)
     tasks!: Task[];
+
+    @Column('simple-json', { nullable: true })
+    finalResult?: any;
 }
